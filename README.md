@@ -35,25 +35,13 @@ h2{margin-top:25px}
 <script>
 let eventos=JSON.parse(localStorage.getItem('feriasRH')||'[]');
 let calendars=[];
-function calcularDias(inicio,fim){
+function calcularDias(inicio, fim) {
+    const dataInicio = new Date(inicio + 'T00:00:00');
+    const dataFim = new Date(fim + 'T00:00:00');
 
-    const dataInicio =
-        new Date(inicio);
-
-    const dataFim =
-        new Date(fim);
-
-    return Math.floor(
-
-        (
-            dataFim -
-            dataInicio
-        )
-
-        / 86400000
-
-    ) 
-
+    return Math.round(
+        (dataFim - dataInicio) / 86400000
+    );
 }
 function cor(n){let h=0;for(let c of n){h=c.charCodeAt(0)+((h<<5)-h);}return '#'+((h>>>0)&0xffffff).toString(16).padStart(6,'0');}
 function save(){localStorage.setItem('feriasRH',JSON.stringify(eventos));renderLegenda();}
@@ -355,52 +343,230 @@ function exportarTodos(){
 
 }
 function exportarCalendario(){let h='<html><body><h1>Calendário Geral</h1>';eventos.forEach(e=>h+='<div style="background:'+e.color+';padding:8px;margin:4px"><b>'+e.title+'</b><br>'+e.start+' até '+(e.end||e.start)+'</div>');h+='</body></html>';baixar(h,'Calendario_Geral.html');}
-function addMonth(container,id,date){let wrap=document.createElement('div');wrap.className='month';const dataMes = new Date(date);
+function addMonth(container, id, date) {
+    const wrap = document.createElement('div');
 
-const nomeMes =
-dataMes.toLocaleDateString(
-    'pt-BR',
-    {
-        month:'long',
-        year:'numeric'
-    }
-);
+    wrap.className = 'month';
 
-wrap.innerHTML =
+    const [ano, mes] = date.split('-');
 
-`
-<h3 style="
-text-align:center;
-margin:5px 0 10px 0;
-text-transform:capitalize;
-">
+    const dataMes = new Date(
+        Number(ano),
+        Number(mes) - 1,
+        1
+    );
 
-${nomeMes}
+    const nomeMes = dataMes.toLocaleDateString(
+        'pt-BR',
+        {
+            month: 'long',
+            year: 'numeric'
+        }
+    );
 
-</h3>
+    wrap.innerHTML = `
+        <h3 style="
+            text-align:center;
+            margin:5px 0 10px 0;
+            text-transform:capitalize;
+        ">
+            ${nomeMes}
+        </h3>
 
-<div id="${id}"></div>
-`;document.getElementById(container).appendChild(wrap);let cal=new FullCalendar.Calendar(document.getElementById(id),{initialView:'dayGridMonth',initialDate:date,headerToolbar:{left:'title',center:'',right:''},height:300,locale:'pt-br',editable:true,selectable:true,events:eventos,select(info){let nome=document.getElementById('nome').value.trim();if(!nome){alert('Digite o nome');return;}if(eventos.filter(x=>x.title===nome).length>=3){alert('Máximo de 3 períodos');return;}let ev={
+        <div id="${id}"></div>
+    `;
 
- id:Date.now()+Math.random()+'',
+    document
+        .getElementById(container)
+        .appendChild(wrap);
 
- title:nome,
+    const cal = new FullCalendar.Calendar(
+        document.getElementById(id),
+        {
+            initialView: 'dayGridMonth',
 
- atuacao:
- document
- .getElementById(
-   'atuacao'
- )
- .value
- .trim(),
+            initialDate: `${date}-01`,
 
- start:info.startStr,
+            locale: 'pt-br',
 
- end:info.endStr,
+            timeZone: 'local',
 
- color:cor(nome)
+            height: 300,
 
-};eventos.push(ev);calendars.forEach(c=>c.addEvent(ev));save();},eventClick(info){if(confirm('Excluir período?')){eventos=eventos.filter(x=>x.id!==info.event.id);calendars.forEach(c=>{let e=c.getEventById(info.event.id);if(e)e.remove();});save();}},eventDrop(info){let e=eventos.find(x=>x.id===info.event.id);if(e){e.start=info.event.startStr;e.end=info.event.endStr;save();}},eventResize(info){let e=eventos.find(x=>x.id===info.event.id);if(e){e.end=info.event.endStr;save();}}});cal.render();calendars.push(cal);}
+            editable: true,
+
+            selectable: true,
+
+            selectMirror: true,
+
+            showNonCurrentDates: false,
+
+            fixedWeekCount: false,
+
+            headerToolbar: {
+                left: '',
+                center: '',
+                right: ''
+            },
+
+            events: eventos,
+
+            select(info) {
+
+                let nome =
+                    document
+                        .getElementById('nome')
+                        .value
+                        .trim();
+
+                if (!nome) {
+                    alert(
+                        'Digite o nome do colaborador.'
+                    );
+                    return;
+                }
+
+                if (
+                    eventos.filter(
+                        x => x.title === nome
+                    ).length >= 3
+                ) {
+                    alert(
+                        'Máximo de 3 períodos por colaborador.'
+                    );
+                    return;
+                }
+
+                const atuacao =
+                    document
+                        .getElementById('atuacao')
+                        .value
+                        .trim();
+
+                const ev = {
+                    id:
+                        Date.now() +
+                        Math.random(),
+
+                    title: nome,
+
+                    atuacao:
+                        atuacao ||
+                        'Não informada',
+
+                    start: info.startStr,
+
+                    end: info.endStr,
+
+                    allDay: true,
+
+                    color: cor(nome)
+                };
+
+                eventos.push(ev);
+
+                calendars.forEach(calendar => {
+                    calendar.addEvent(ev);
+                });
+
+                save();
+
+                info.view.calendar.unselect();
+            },
+
+            eventClick(info) {
+
+                if (
+                    confirm(
+                        'Excluir este período?'
+                    )
+                ) {
+
+                    const id =
+                        String(
+                            info.event.id
+                        );
+
+                    eventos =
+                        eventos.filter(
+                            x =>
+                                String(x.id) !== id
+                        );
+
+                    calendars.forEach(
+                        calendar => {
+
+                            const event =
+                                calendar
+                                    .getEventById(id);
+
+                            if (event) {
+                                event.remove();
+                            }
+
+                        }
+                    );
+
+                    save();
+                }
+            },
+
+            eventDrop(info) {
+
+                const id =
+                    String(
+                        info.event.id
+                    );
+
+                const e =
+                    eventos.find(
+                        x =>
+                            String(x.id) === id
+                    );
+
+                if (e) {
+
+                    e.start =
+                        info.event.startStr;
+
+                    e.end =
+                        info.event.endStr;
+
+                    save();
+                }
+            },
+
+            eventResize(info) {
+
+                const id =
+                    String(
+                        info.event.id
+                    );
+
+                const e =
+                    eventos.find(
+                        x =>
+                            String(x.id) === id
+                    );
+
+                if (e) {
+
+                    e.start =
+                        info.event.startStr;
+
+                    e.end =
+                        info.event.endStr;
+
+                    save();
+                }
+            }
+        }
+    );
+
+    cal.render();
+
+    calendars.push(cal);
+}
 ['2026-09','2026-10','2026-11','2026-12'].forEach((m,i)=>addMonth('y2026','c26'+i,m+'-01'));
 ['2027-01','2027-02','2027-03','2027-04','2027-05','2027-06','2027-07','2027-08','2027-09','2027-10','2027-11','2027-12'].forEach((m,i)=>addMonth('y2027','c27'+i,m+'-01'));
 function renderLegenda(){
