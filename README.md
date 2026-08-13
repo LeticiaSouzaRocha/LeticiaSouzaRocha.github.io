@@ -182,3 +182,69 @@
           if(!nome){alert('Digite o nome');return;}
           if(eventos.filter(x=>x.title===nome).length>=3){alert('Máximo de 3 períodos');return;}
           let ev={id:Date.now()+Math.random()+'',title:nome,atuacao:document.getElementById('atuacao').value.trim(),start:info
+function addMonth(container,id,date){
+  let wrap=document.createElement('div');
+  wrap.className='month';
+  const dataMes = new Date(date);
+  const nomeMes = dataMes.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  wrap.innerHTML = `
+    <h3 style="text-align:center;margin:5px 0 10px 0;text-transform:capitalize;">
+      ${nomeMes}
+    </h3>
+    <div id="${id}"></div>`;
+  document.getElementById(container).appendChild(wrap);
+
+  let cal=new FullCalendar.Calendar(document.getElementById(id),{
+    initialView:'dayGridMonth',
+    initialDate:date,
+    headerToolbar:{left:'title',center:'',right:''},
+    height:300,
+    locale:'pt-br',
+    editable:true,
+    selectable:true,
+    events:eventos,
+    select(info){
+      let nome=document.getElementById('nome').value.trim();
+      if(!nome){alert('Digite o nome');return;}
+      if(eventos.filter(x=>x.title===nome).length>=3){alert('Máximo de 3 períodos');return;}
+      let ev={
+        id:Date.now()+Math.random()+'',
+        title:nome,
+        atuacao:document.getElementById('atuacao').value.trim(),
+        start:info.startStr,
+        end:info.endStr,
+        color:cor(nome)
+      };
+      eventos.push(ev);
+      calendars.forEach(c=>c.addEvent(ev));
+      save();
+    },
+    eventClick(info){
+      if(confirm('Excluir período?')){
+        eventos=eventos.filter(x=>x.id!==info.event.id);
+        calendars.forEach(c=>{
+          let e=c.getEventById(info.event.id);
+          if(e)e.remove();
+        });
+        save();
+      }
+    },
+    eventDrop(info){
+      let e=eventos.find(x=>x.id===info.event.id);
+      if(e){
+        e.start=info.event.startStr;
+        e.end=info.event.endStr;
+        save();
+      }
+    },
+    eventResize(info){
+      let e=eventos.find(x=>x.id===info.event.id);
+      if(e){
+        e.end=info.event.endStr;
+        save();
+      }
+    }
+  });
+  cal.render();
+  calendars.push(cal);
+}
