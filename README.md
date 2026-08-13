@@ -1,5 +1,3 @@
-Claro, Rafael! Aqui está o seu código **completo e ajustado**, já corrigindo os problemas de sintaxe (substituí todos os `<...>` por template literals com crase \``\`), o que vai resolver os bugs no GitHub Pages:
-
 ```html
 <!DOCTYPE html>
 <html lang="pt-BR">
